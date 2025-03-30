@@ -100,7 +100,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } catch {
                 print("Error loading configuration: \(error)")
-                saveConfiguration()
+                let alert = NSAlert()
+                alert.messageText = "Error loading configuration"
+                alert.runModal();
             }
         }
     }
