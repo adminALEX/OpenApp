@@ -68,7 +68,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let appDirectory = appSupportURL.appendingPathComponent("OpenApp")
         
         if !fileManager.fileExists(atPath: appDirectory.path) {
+            print("Creating Application Support directory...")
             try? fileManager.createDirectory(at: appDirectory, withIntermediateDirectories: true)
+        }else{
+            print("Using existing Application Support directory...")
         }
         
         return appDirectory.appendingPathComponent(configFileName)
@@ -89,6 +92,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             do {
                 let data = try Data(contentsOf: configPath)
+                if let dataString = String(data: data, encoding: .utf8) {
+                    print("confguration: \(dataString)")
+                } else {
+                    print("Failed to convert Data to String")
+                }
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: String] {
                     appConfig = json
                 }
@@ -203,7 +211,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         print("Could not find app URL for bundle ID \(bundleID)")
                     }
                 } else {
-                    let appURL = URL(fileURLWithPath: "/Applications/\(appName).app")
+                    var appURL = URL(fileURLWithPath: "/Applications/\(appName).app")
+
+                    if appName.hasPrefix("~") || appName.hasPrefix("/") {
+                        // Expand tilde (~) if present
+                        let expandedPath = URL(fileURLWithPath: (appName as NSString).expandingTildeInPath)
+                        appURL = expandedPath
+                    }
+
                     let configuration = NSWorkspace.OpenConfiguration()
                     workspace.openApplication(at: appURL, configuration: configuration) { (app, error) in
                         if let error = error {
