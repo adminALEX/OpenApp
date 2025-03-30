@@ -13,7 +13,12 @@ import Foundation
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var hotkeyMonitor: Any?
-    var appConfig: [String: String] = [:]
+    var appConfig: [String: String] = [
+        "trigger": "rightCommand",
+        "a": "Safari",
+        "m": "Mail",
+        "c": "Calendar"
+    ]
     let configFileName = "openapp_config.json"
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -54,7 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func setupMenu() {
         let menu = NSMenu()
         
-        menu.addItem(NSMenuItem(title: "Edit Configuration", action: #selector(editConfiguration), keyEquivalent: "e"))
+        menu.addItem(NSMenuItem(title: "Edit Configuration", action: #selector(editConfiguration), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         
@@ -81,13 +86,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let configPath = configFilePath()
         
         if !FileManager.default.fileExists(atPath: configPath.path) {
-            // Create default configuration
-            appConfig = [
-                "trigger": "rightCommand",  // Options: rightCommand, leftCommand, rightShift, leftShift, etc.
-                "a": "Safari",
-                "m": "Mail",
-                "c": "Calendar"
-            ]
             saveConfiguration()
         } else {
             do {
@@ -102,13 +100,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } catch {
                 print("Error loading configuration: \(error)")
-                // Create default configuration if loading fails
-                appConfig = [
-                    "trigger": "rightCommand",
-                    "a": "Safari",
-                    "m": "Mail",
-                    "c": "Calendar"
-                ]
                 saveConfiguration()
             }
         }
