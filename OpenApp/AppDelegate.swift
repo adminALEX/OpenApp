@@ -8,6 +8,7 @@
 import Cocoa
 import Carbon
 import Foundation
+import ServiceManagement
 
 // MARK: - Main Application
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -43,6 +44,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = NSImage(systemSymbolName: "command", accessibilityDescription: "OpenApp")
         }
         
+        // Enable "Open at Login" by default
+        enableLaunchAtLogin()
+        
         setupMenu()
         loadConfiguration()
         registerHotkeys()
@@ -60,10 +64,86 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         
         menu.addItem(NSMenuItem(title: "Edit Configuration", action: #selector(editConfiguration), keyEquivalent: ","))
+        
+        // Add "Launch at Login" menu item
+        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchAtLoginItem.state = isLaunchAtLoginEnabled() ? .on : .off
+        menu.addItem(launchAtLoginItem)
+        
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         
         statusItem.menu = menu
+    }
+    
+    // MARK: - Launch at Login
+    func enableLaunchAtLogin() {
+        if !isLaunchAtLoginEnabled() {
+            if #available(macOS 13.0, *) {
+                // For macOS 13+ (Ventura and later)
+                do {
+                    try SMAppService.mainApp.register()
+                    print("Successfully registered app to launch at login")
+                } catch {
+                    print("Failed to register app to launch at login: \(error)")
+                }
+            } else {
+                // For older macOS versions - we need to deploy a helper app
+                print("On older macOS versions, consider using a helper app approach")
+                // We'll need to implement a different approach for older systems
+                // Usually this involves a helper app that's registered to launch at login
+                showOlderMacOSAlert()
+            }
+        }
+    }
+    
+    func showOlderMacOSAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Open at Login Support"
+        alert.informativeText = "Your macOS version requires manually adding this app to Login Items in System Preferences > Users & Groups > Login Items."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+    
+    func isLaunchAtLoginEnabled() -> Bool {
+        if #available(macOS 13.0, *) {
+            return SMAppService.mainApp.status == .enabled
+        } else {
+            // For older versions, we can't reliably check
+            // We would need to use a helper app approach
+            return false
+        }
+    }
+    
+    @objc func toggleLaunchAtLogin() {
+        if #available(macOS 13.0, *) {
+            do {
+                if isLaunchAtLoginEnabled() {
+                    try SMAppService.mainApp.unregister()
+                    print("Unregistered app from launch at login")
+                } else {
+                    try SMAppService.mainApp.register()
+                    print("Registered app to launch at login")
+                }
+                
+                // Update menu item state
+                if let menuItem = statusItem.menu?.item(withTitle: "Launch at Login") {
+                    menuItem.state = isLaunchAtLoginEnabled() ? .on : .off
+                }
+            } catch {
+                print("Failed to toggle launch at login: \(error)")
+                let alert = NSAlert()
+                alert.messageText = "Launch at Login Error"
+                alert.informativeText = "Failed to change Launch at Login setting: \(error.localizedDescription)"
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+        } else {
+            // For older macOS versions, direct users to System Preferences
+            showOlderMacOSAlert()
+        }
     }
     
     // MARK: - Configuration
