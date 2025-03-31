@@ -9,6 +9,7 @@ import Cocoa
 import Carbon
 import Foundation
 import ServiceManagement
+import SwiftUI
 
 // MARK: - Main Application
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -63,8 +64,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func setupMenu() {
         let menu = NSMenu()
         
-        menu.addItem(NSMenuItem(title: "Edit Configuration", action: #selector(editConfiguration), keyEquivalent: ","))
-        
+        menu.addItem(NSMenuItem(title: "Edit Configuration", action: #selector(AppDelegate.editConfiguration), keyEquivalent: ","))
+
         // Add "Launch at Login" menu item
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchAtLoginItem.state = isLaunchAtLoginEnabled() ? .on : .off
@@ -195,11 +196,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("Error saving configuration: \(error)")
         }
     }
-    
+
     @objc func editConfiguration() {
-        // Open the config file in the default editor
-        NSWorkspace.shared.open(configFilePath())
+        let editorView = ConfigurationEditorView(appConfig: Binding(
+            get: { self.appConfig },
+            set: { self.appConfig = $0 }
+        ))
+
+        let hostingController = NSHostingController(rootView: editorView)
+        
+        let windowHeight: CGFloat = 600
+        let windowWidth: CGFloat = 500
+
+        // Create a new window with specific size
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),  // Set the desired height
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.center()
+        window.title = "Edit Configuration" // Set a title to the window
+        window.contentViewController = hostingController // Set the content view controller
+
+        // Make the window key and bring it to the front
+        window.makeKeyAndOrderFront(nil)
+        window.setContentSize(NSSize(width: windowWidth, height: windowHeight))
     }
+
     
     // MARK: - Hotkey Registration
     func registerHotkeys() {
